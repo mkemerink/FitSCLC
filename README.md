@@ -1,7 +1,7 @@
 # FitSCLC
-Automated open-source model for reliable charge transport analysis in organic semiconductor diodes.
+Automated open-source model for reliable charge transport analysis in organic semiconductor diodes. The program is written in Matlab and allows automated analysis of space charge limited conduction measurements on unipolar diodes.
 
-There 3 archives, containing:
+There are 3 archives, containing:
 1) a runtime (executable) of the fitting program
 2) all the Matlab .m and .fig files for advanced users that want to make changes to the code
 3) some sample data to familiarize yourself with the program
