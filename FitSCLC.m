@@ -97,7 +97,7 @@ handles.In.DDpar = [1.0e-9;... [m] dx - mesh size (0.1...1e-9)
     10e-9;... [m] In.dxCont - thickness of contact region (5e-9)
     10;...   [1] In.Qexcess - factor for exceeding SCLC charge concentration (10)
     0.10;...  [1] In.mix - weight of newest solution in mixing with old (0.1...0.2)
-    1e-5;... [1] In.MaxChange - convergence criterion: max relative change in potential (1e-5)
+    1e-4;... [1] In.MaxChange - convergence criterion: max relative change in potential (1e-5)
     0];     %[1] In.UseImPot - toggles use of image potential; false is more stable (false)
 %define structures for various user data
 handles.DATA = [];
@@ -669,7 +669,7 @@ handles.In.muModel = 1;
 if handles.In.FitModel==1 %Murgatroyd/Gill
     handles.muModel.String = {'GDM';'Arrhenius'};
 else %drift-diffusion
-    handles.muModel.String = {'eGDM';'cGDM';'ET-GDM'};
+    handles.muModel.String = {'eGDM';'cGDM';'ET-GDM (lattice)';'ET-GDM (random)'};
 end
 handles = SetActive(handles); %set (in)active elements
 guidata(hObject, handles); %Update handles structure
@@ -731,7 +731,7 @@ function ShowGuess_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-%Basically this is a short version of Fit_Callback() - see there
+%Basically this is a short version of FitIt_Callback() - see there
 guess.Vbi = handles.In.generalPar(2,1)-handles.In.generalPar(3,1); %[V] built-in voltage
 if handles.In.muModel==1
     handles.In.C = [2/3;2]; %makes mu0(T) follow GDM, see function mu0_T
@@ -751,7 +751,8 @@ if handles.In.FitModel==2
     In.sigma = handles.In.eGDMpar(1,1);
     In.nu0 = handles.In.eGDMpar(2,1);
     In.aNN = handles.In.eGDMpar(3,1);
-    if handles.In.muModel==3 %ET-GDM
+    if handles.In.muModel==3 || handles.In.muModel==4 %ET-GDM
+        In.muModel = handles.In.muModel;
         In.alpha = handles.In.ET_GDMpar(1,1); %[m]
         In.L = min(handles.DATA.L); %worst-case, L is overruled below
         In = MakeLookup(In,handles.DATA.T,handles.In.OutputPar(2)); %requires lookup table
@@ -854,7 +855,7 @@ else %drift-diffusion/eGDM
         log10(handles.In.eGDMpar(2,1))...
         log10(handles.In.eGDMpar(2,1))+handles.In.eGDMpar(2,4);...
         1e9*[handles.In.eGDMpar(3,3) handles.In.eGDMpar(3,1) handles.In.eGDMpar(3,4)]]; %5) nearest neighbor distance in nm In.aNN
-    if handles.In.muModel==3 %extend if effective temperature version of GDM
+    if handles.In.muModel==3 || handles.In.muModel==4 %extend if effective temperature version of GDM
         Fit.par(6,:) = 1e9*...
             [handles.In.ET_GDMpar(1,3) handles.In.ET_GDMpar(1,1) handles.In.ET_GDMpar(1,4)]; %6) localization length in nm In.alpha
     end
@@ -885,7 +886,7 @@ handles.status.Fitted = true; %a fit has been performed
 handles.status.Saved = false; %data & fit have not been saved
 
 %% post-processing
-%store FitIt parameters
+%store FitIt parameters in GUI tables & prepare jV calculation
 if handles.In.FitModel==1 %Murgatroyd/Gill
     handles.In.generalPar(2,2) = handles.In.generalPar(2,1); %phi1, undetermined
     handles.In.generalPar(3,2) = handles.In.generalPar(2,1)-Fit.p(1); %Vbi
@@ -901,13 +902,12 @@ if handles.In.FitModel==1 %Murgatroyd/Gill
         end
     end
 else %drift-diffusion + e/c/ET-GDM
-    %store fitit parameters in GUI table
     handles.In.generalPar(2,2) = Fit.p(1); %phi1
     handles.In.generalPar(3,2) = Fit.p(2); %phi2
     handles.In.eGDMpar(1,2) = Fit.p(3); %sigma
     handles.In.eGDMpar(2,2) = 10^Fit.p(4); %nu0
     handles.In.eGDMpar(3,2) = 1e-9*Fit.p(5); %aNN
-    if handles.In.muModel==3 %ET-GDM
+    if handles.In.muModel==3 || handles.In.muModel==4 %ET-GDM
         handles.In.ET_GDMpar(1,2) = 1e-9*Fit.p(6); %alpha
     end
     %store fitit parameters in In. to calculate corresponding jV
@@ -916,7 +916,8 @@ else %drift-diffusion + e/c/ET-GDM
     In.sigma = Fit.p(3);
     In.nu0   = 10^Fit.p(4);
     In.aNN   = 1e-9*Fit.p(5);
-    if handles.In.muModel==3 %ET-GDM
+    if handles.In.muModel==3 || handles.In.muModel==4 %ET-GDM
+        In.muModel = handles.In.muModel;
         In.alpha = 1e-9*Fit.p(6);
         In.L = min(handles.DATA.L); %worst-case, L is overruled below
         In = MakeLookup(In,handles.DATA.T,handles.In.OutputPar(2)); %requires lookup table
@@ -957,6 +958,9 @@ for k=1:handles.DATA.NrTemp
         [In,Out] = ODDD(In);
         handles.Fit.jV(:,k+1) = Out.j; %[A/m2] j(V)
         handles.Fit.mu0(k) = In.mu0 ;%zero-field & density mu
+        if handles.In.muModel==3 || handles.In.muModel==4 %ET-GDM (Cottaar/Baranovskii)
+            handles.Fit.mu0(k) = handles.Fit.mu0(k)*ET_GDM(In,0,0,0);
+        end
     end
     handles.Fit.slope(:,k+1) = ... power law slope
         diff(log10(handles.Fit.jV(:,k+1)),1,1)./diff(log10(handles.Fit.jV(:,1)),1,1);
