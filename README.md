@@ -12,4 +12,4 @@ Success!
 Martijn
 
 PS When the program is useful to your publication, please be nice and cite the corresponding paper:
-“Automated open-source software for charge transport analysis in single-carrier organic semiconductor diodes” by Nikolaos Felekidis, Armantas Melianas and Martijn Kemerink, (citation will be added when available)
+“Automated open-source software for charge transport analysis in single-carrier organic semiconductor diodes” by Nikolaos Felekidis, Armantas Melianas and Martijn Kemerink, Organic Electronics, Vol. 61, pages 318-328, year 2018 (DOI: 10.1016/j.orgel.2018.06.010)
