@@ -1,15 +1,19 @@
 function MuEnhance = ET_GDM(In,gamma,c,Fnorm)
 %{
 Implementation of the effective-temperature version of a density- and
-field-dependent mobility for nearest neighbor hopping in an uncorrelated
-Gaussian DOS.
+field-dependent mobility for VRH hopping on either a regular or a random
+lattice with an uncorrelated Gaussian DOS.
 
-This version works by quadratic interpolation in a look-up table since
-finding EF by brute force at each data point takes forever. Look-up table
-is generated in MakeLookup.m.
+This version works by quadratic interpolation using coefficients in a
+look-up table since finding EF by brute force at each data point takes
+forever. The look-up table is generated in MakeLookup.m and gives
+log10(mobility) since mobility is a roughly exponential function of
+density, field and temperature.
+
+The value of In.mu0 is not really important since it is normalized out.
 
 Linköping University
-Martijn Kemerink, May 18, 2018
+Martijn Kemerink, October 03, 2019
 %}
 
 %effective T, log(concentration)

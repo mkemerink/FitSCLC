@@ -8,10 +8,13 @@ It...
 fit) or
 2b) Runs the function ODDD to calculate the model jV using drift-diffusion
 3) Calculates the error as the summed squared differences between the jV in
-DATA and model. The 10log of j's is used to properly cover the full jV.
+DATA and model.
+
+The output Error is a log-RMS error, i.e. the 10log of j's is used to
+properly cover the full jV range.
 
 Linköping University
-Martijn Kemerink, May 18, 2018
+Martijn Kemerink, October 03, 2019
 %}
 
 %Init/transfer of parameters
@@ -29,13 +32,13 @@ else %drift-diffusion + e/c/ET-GDM
     In.sigma = p(3);
     In.nu0 = 10^p(4);
     In.aNN = 1e-9*p(5);
-    if In.muModel==3 %ET-GDM
+    if In.muModel==3 || In.muModel==4 %ET-GDM
         In.alpha = 1e-9*p(6);
     end
 end
 
 %Init lookup table in case of ET-GDM
-if In.FitModel==2 && In.muModel==3
+if In.FitModel==2 && (In.muModel==3 || In.muModel==4)
     Vmax = zeros(DATA.NrTemp,1);
     for k = 1:DATA.NrTemp %stupid loop to find Vmax...
         In.bias0 = DATA.jVT(DATA.ind(:,k),1,k);
@@ -47,6 +50,7 @@ end
 
 %jV calculation
 Error = 0;
+Npts = sum(DATA.jVT(end,1,:)); %total nr of jV points to fit
 for k = 1:DATA.NrTemp %loop over all loaded measurements
     j0 = DATA.jVT(DATA.ind(:,k),2,k); %[A/m2] current to fit
     In.bias0 = DATA.jVT(DATA.ind(:,k),1,k); %[V] corresponding applied bias
@@ -90,7 +94,8 @@ for k = 1:DATA.NrTemp %loop over all loaded measurements
     %update error
     Error = Error + sum( (log10(abs(j0)) - log10(abs(j))).^2 );
 end
-Error = Error/DATA.NrTemp; %allows comparing errors with different numbers of T
+
+Error = sqrt(Error/Npts); %normalization for RMS of log error
 
 end
 

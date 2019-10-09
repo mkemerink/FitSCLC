@@ -34,10 +34,10 @@ In.Egap = 100; %[eV] effective bandgap
 % In.muModel = 2; %2=Pasveer parametrization of eGDM;
 In.trapModel = 0; %0=none; 1=single trap; 2=Gaussian; 3=exponential
     %general & trapModel=1 - single shallow trap in Boltzmann limit
-    In.Nt = 3e23; %[m-3] total density of trap states (1e23|-|1e25))
-    In.Et = 0.30; %[eV] trap depth, >0 (0.15|0.55)
+    In.Nt = 5e22; %[m-3] total density of trap states (1e23|-|1e25))
+    In.Et = 0.10; %[eV] trap depth, >0 (0.15|0.55)
     %trapModel=2 - Gaussian trap DOS
-    In.sigmat = 0.075; %[eV] trap width
+    In.sigmat = 0.1; %[eV] trap width
     %trapModel=3 - exponential trap DOS (Et not used)
     In.Tt = 900; %[K] characteristic temperature Tt>T
 In.doping = 0; %[m-3] doping concentration
@@ -77,14 +77,20 @@ elseif In.muModel==2 %cGDM (Bouhassoune) - correlated Gaussian DOS
     In.mu0 = Par.c1*Par.mu_star*exp(-Par.Chi*Par.sigma_hat^2); %[m2/Vs] Eq. 9
     Par.delta = 2.3*(log(0.5*Par.sigma_hat^2+1.4*Par.sigma_hat)-0.327)/Par.sigma_hat^2; %Eq. A3
     Par.r = 0.7*Par.sigma_hat^-0.7; %Eq. A7
-elseif In.muModel==3 %ET-GDM (Cottaar PRL and Baranovskii for Teff)
+elseif In.muModel==3 %ET-GDM on lattice (Cottaar PRL and Baranovskii for Teff)
     Par.B = 0.47; %[1] from Cottaar, fcc + MA rates (cf c1 in other models)
     Par.Ecrit =-0.491*Par.sigma_hat; %[1] from Cottaar, fcc + MA rates
     Par.gamma = 0.67; %[1] prefactor in Shklovskii-expression for Teff
     Par.lambda = 0.875; %[1] critical exponent (0.97 in Cottaar for fcc/MA)
     In.mu0 = Par.B*Par.mu_star*Par.sigma_hat^(1-Par.lambda)*...
-        exp(-0.5*Par.sigma_hat^2-Par.Ecrit); %[m2/Vs] Eq. 5a
+        exp(-0.5*Par.sigma_hat^2-Par.Ecrit); %[m2/Vs] Eq. 5a in Cottaar
     Par.mu_pre = Par.B*In.nu0/(Par.E_th*In.aNN)*Par.sigma_hat^Par.lambda; %
+elseif In.muModel==4 %ET-GDM on random grid
+    Par.gamma = 0.67; %[1] prefactor in Shklovskii-expression for Teff
+    Par.Ecrit =-0.491*Par.sigma_hat; %[1] from Cottaar, fcc + MA rates
+    %rough estimate for mu0, the value is not important as it gets overruled in ET_GDM
+    In.mu0 = (In.aNN^2*In.nu0/Par.E_th)*...
+        exp(-(Par.Ecrit-In.sigma^2/Par.E_th)); %[m2/Vs] mobility prefactor for VRH
 end
 In.D0 = In.mu0*Par.E_th; %[m2/s] diffusion constant
 
@@ -118,7 +124,7 @@ Work.preJ = Par.q/In.dx*In.N0; %current calculation
 Work.Qpar = In.dx*Par.q*In.N0; %to calculate total areal charge density
 if In.muModel==1 || In.muModel==2
     Work.preF = Par.E_th/In.dx*In.aNN/In.sigma; %to SI * normalization of field
-elseif In.muModel==3
+elseif In.muModel==3 || In.muModel==4
     Work.preF = Par.E_th/In.dx*In.alpha*Par.q/Par.kB; %to SI * normalization of field
 end
 if In.UseImPot
@@ -231,9 +237,7 @@ for iBias=1:In.nV %loop over requested biases
         elseif In.muModel==2 %cGDM (Bouhassoune)
             Work.D(:) = In.D0*cGDM(Par,In.mu0,...
                 0.5*(Work.nf(1:end-1)+Work.nf(2:end)),abs(Work.preF*Work.F));
-        elseif In.muModel==3 %ET-GDM (Cottaar/Baranovskii)
-%             Work.D(:) = In.D0*ET_GDM_old(Par,In.mu0,In.T,...
-%                 0.5*(Work.nf(1:end-1)+Work.nf(2:end)),abs(Work.preF*Work.F));
+        elseif In.muModel==3 || In.muModel==4 %ET-GDM (Cottaar/Baranovskii)
             Work.D(:) = In.D0*ET_GDM(In,Par.gamma,...
                 0.5*(Work.nf(1:end-1)+Work.nf(2:end)),abs(Work.preF*Work.F));
         end

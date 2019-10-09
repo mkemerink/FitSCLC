@@ -4,7 +4,7 @@ Activates/de-activates the fields in the GUI according to the current
 status and the options chosen.
 
 Linköping University
-Martijn Kemerink, May 18, 2018
+Martijn Kemerink, November 20, 2018
 %}
 
 %% first: deactivate everything
@@ -82,7 +82,7 @@ if handles.status.RangeSet
     else %drift-diffusion/eGDM
         set(handles.muModel,'Enable','on');
         set(handles.eGDMtable,'Enable','on');
-        if handles.In.muModel==3 %ET-GDM
+        if (handles.In.muModel==3)||(handles.In.muModel==4) %ET-GDM (lattice) or (random)
             set(handles.ET_GDMtable,'Enable','on');
         end
         set(handles.SpeedMode,'Visible','on');
